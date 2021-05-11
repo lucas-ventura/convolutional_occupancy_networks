@@ -2,6 +2,7 @@ import yaml
 from torchvision import transforms
 from src import data
 from src import conv_onet
+import torch
 
 
 method_dict = {
@@ -127,11 +128,24 @@ def get_dataset(mode, cfg, return_idx=False):
 
     # Create dataset
     if dataset_type == 'Shapes3D':
+        if cfg['data']['scale_rotate'] is not None:
+            r1 = 0.8
+            r2 = 1.
+            scale = (r1 - r2) * torch.rand(1) + r2
+            rotation = torch.rand(3) * 360
+
+            sr_points_transform = data.ScaleAndRotatePoints(scale, rotation)
+            sr_pointcloud_transform = data.ScaleAndRotatePointcloud(scale, rotation)
+
+        else:
+            sr_points_transform = None
+            sr_pointcloud_transform = None
+
         # Dataset fields
         # Method specific fields (usually correspond to output)
-        fields = method_dict[method].config.get_data_fields(mode, cfg)
+        fields = method_dict[method].config.get_data_fields(mode, cfg, sr_points_transform)
         # Input fields
-        inputs_field = get_inputs_field(mode, cfg)
+        inputs_field = get_inputs_field(mode, cfg, sr_pointcloud_transform)
         if inputs_field is not None:
             fields['inputs'] = inputs_field
 
@@ -142,7 +156,7 @@ def get_dataset(mode, cfg, return_idx=False):
             dataset_folder, fields,
             split=split,
             categories=categories,
-            cfg = cfg
+            cfg=cfg
         )
     else:
         raise ValueError('Invalid dataset "%s"' % cfg['data']['dataset'])
@@ -150,7 +164,7 @@ def get_dataset(mode, cfg, return_idx=False):
     return dataset
 
 
-def get_inputs_field(mode, cfg):
+def get_inputs_field(mode, cfg, sr_pointcloud_transform=None):
     ''' Returns the inputs fields.
 
     Args:
@@ -162,10 +176,17 @@ def get_inputs_field(mode, cfg):
     if input_type is None:
         inputs_field = None
     elif input_type == 'pointcloud':
-        transform = transforms.Compose([
-            data.SubsamplePointcloud(cfg['data']['pointcloud_n']),
-            data.PointcloudNoise(cfg['data']['pointcloud_noise'])
-        ])
+        if sr_pointcloud_transform is not None:
+            transform = transforms.Compose([
+                sr_pointcloud_transform,
+                data.SubsamplePointcloud(cfg['data']['pointcloud_n']),
+                data.PointcloudNoise(cfg['data']['pointcloud_noise'])
+            ])
+        else:
+            transform = transforms.Compose([
+                data.SubsamplePointcloud(cfg['data']['pointcloud_n']),
+                data.PointcloudNoise(cfg['data']['pointcloud_noise'])
+            ])
         inputs_field = data.PointCloudField(
             cfg['data']['pointcloud_file'], transform,
             multi_files= cfg['data']['multi_files']

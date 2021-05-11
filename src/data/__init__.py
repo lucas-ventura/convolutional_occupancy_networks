@@ -9,6 +9,7 @@ from src.data.fields import (
 from src.data.transforms import (
     PointcloudNoise, SubsamplePointcloud,
     SubsamplePoints,
+    ScaleAndRotatePoints, ScaleAndRotatePointcloud
 )
 __all__ = [
     # Core
@@ -27,4 +28,6 @@ __all__ = [
     PointcloudNoise,
     SubsamplePointcloud,
     SubsamplePoints,
+    ScaleAndRotatePoints,
+    ScaleAndRotatePointcloud,
 ]

@@ -28,6 +28,7 @@ data:
   pointcloud_noise: 0.05
   voxels_file: 'model.binvox'
   padding: 0.1
+  scale_rotate: null
 model:
   decoder: simple
   encoder: resnet18

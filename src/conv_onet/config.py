@@ -160,14 +160,22 @@ def get_generator(model, cfg, device, **kwargs):
     return generator
 
 
-def get_data_fields(mode, cfg):
+def get_data_fields(mode, cfg, sr_points_transform=None):
     ''' Returns the data fields.
 
     Args:
         mode (str): the mode which is used
         cfg (dict): imported yaml config
     '''
-    points_transform = data.SubsamplePoints(cfg['data']['points_subsample'])
+
+    if sr_points_transform is not None:
+        points_transform = transforms.Compose([
+            sr_points_transform,
+            data.SubsamplePoints(cfg['data']['points_subsample'])
+        ])
+    else:
+        points_transform = data.SubsamplePoints(cfg['data']['points_subsample'])
+
     
     input_type = cfg['data']['input_type']
     fields = {}

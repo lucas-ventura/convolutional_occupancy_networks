@@ -1,0 +1,54 @@
+method: conv_onet
+data:
+  input_type: pointcloud
+  classes: ['']
+  path: data/ycb_con
+  pointcloud_n: 3000
+  pointcloud_noise: 0.005
+  points_subsample: 2048
+  points_file: points.npz
+  pointcloud_crop: null
+  points_iou_file: points.npz
+  # points_unpackbits: false
+  pointcloud_file: pointcloud.npz
+  voxels_file: null
+  scale_rotate: 0.8
+model:
+  encoder: pointnet_local_pool
+  encoder_kwargs:
+    hidden_dim: 32
+    plane_type: 'grid'
+    grid_resolution: 32
+    unet3d: True
+    unet3d_kwargs:
+      num_levels: 3
+      f_maps: 32
+      in_channels: 32
+      out_channels: 32
+  decoder: simple_local      
+  decoder_kwargs:
+    sample_mode: bilinear # bilinear / nearest
+    hidden_size: 32
+  c_dim: 32
+training:
+  out_dir: out/pointcloud/ycb_con
+  batch_size: 32
+  model_selection_metric: iou
+  model_selection_mode: maximize
+  print_every: 100
+  visualize_every: 1000
+  validate_every: 1000
+  checkpoint_every: 200
+  backup_every: 1000
+  n_workers: 8
+  n_workers_val: 4
+test:
+  threshold: 0.2
+  eval_mesh: true
+  eval_pointcloud: false
+  model_file: model_10000.pt
+generation:
+  vis_n_outputs: 2
+  refine: false
+  n_x: 128
+  n_z: 1
