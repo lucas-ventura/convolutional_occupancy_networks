@@ -5,7 +5,6 @@ import numpy as np
 import yaml
 from src.common import decide_total_volume_range, update_reso
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -72,9 +71,9 @@ class Shapes3dDataset(data.Dataset):
         else:
             self.metadata = {
                 c: {'id': c, 'name': 'n/a'} for c in categories
-            } 
-        
-        # Set index
+            }
+
+            # Set index
         for c_idx, c in enumerate(categories):
             self.metadata[c]['idx'] = c_idx
 
@@ -87,14 +86,15 @@ class Shapes3dDataset(data.Dataset):
 
             if split is None:
                 self.models += [
-                    {'category': c, 'model': m} for m in [d for d in os.listdir(subpath) if (os.path.isdir(os.path.join(subpath, d)) and d != '') ]
+                    {'category': c, 'model': m} for m in
+                    [d for d in os.listdir(subpath) if (os.path.isdir(os.path.join(subpath, d)) and d != '')]
                 ]
 
             else:
                 split_file = os.path.join(subpath, split + '.lst')
                 with open(split_file, 'r') as f:
                     models_c = f.read().split('\n')
-                
+
                 if '' in models_c:
                     models_c.remove('')
 
@@ -102,29 +102,28 @@ class Shapes3dDataset(data.Dataset):
                     {'category': c, 'model': m}
                     for m in models_c
                 ]
-        
+
         # precompute
-        if self.cfg['data']['input_type'] == 'pointcloud_crop': 
+        if self.cfg['data']['input_type'] == 'pointcloud_crop':
             self.split = split
             # proper resolution for feature plane/volume of the ENTIRE scene
             query_vol_metric = self.cfg['data']['padding'] + 1
             unit_size = self.cfg['data']['unit_size']
-            recep_field = 2**(cfg['model']['encoder_kwargs']['unet3d_kwargs']['num_levels'] + 2)
+            recep_field = 2 ** (cfg['model']['encoder_kwargs']['unet3d_kwargs']['num_levels'] + 2)
             if 'unet' in cfg['model']['encoder_kwargs']:
                 depth = cfg['model']['encoder_kwargs']['unet_kwargs']['depth']
             elif 'unet3d' in cfg['model']['encoder_kwargs']:
                 depth = cfg['model']['encoder_kwargs']['unet3d_kwargs']['num_levels']
-            
+
             self.depth = depth
-            #! for sliding-window case, pass all points!
+            # ! for sliding-window case, pass all points!
             if self.cfg['generation']['sliding_window']:
                 self.total_input_vol, self.total_query_vol, self.total_reso = \
-                    decide_total_volume_range(100000, recep_field, unit_size, depth) # contain the whole scene
+                    decide_total_volume_range(100000, recep_field, unit_size, depth)  # contain the whole scene
             else:
                 self.total_input_vol, self.total_query_vol, self.total_reso = \
                     decide_total_volume_range(query_vol_metric, recep_field, unit_size, depth)
 
-            
     def __len__(self):
         ''' Returns the length of the dataset.
         '''
@@ -148,10 +147,27 @@ class Shapes3dDataset(data.Dataset):
             data['pointcloud_crop'] = True
         else:
             info = c_idx
-        
-        for field_name, field in self.fields.items():
+
+        scale = None
+        rotation = None
+        for field_name, field in sorted(self.fields.items(), reverse=True):
             try:
-                field_data = field.load(model_path, idx, info)
+                if self.cfg['data']['scale_rotate'] is not None:
+                    if field_name == 'points':
+                        field_data = field.load(model_path, idx, info)
+                        scale = field_data['scale']
+                        rotation = field_data['rotation']
+                        del field_data['scale']
+                        del field_data['rotation']
+                    elif field_name == 'inputs':
+                        assert scale is not None
+                        assert rotation is not None
+                        field_data = field.load(model_path, idx, info, scale=scale, rotation=rotation)
+                    else:
+                        field_data = field.load(model_path, idx, info)
+                else:
+                    field_data = field.load(model_path, idx, info)
+
             except Exception:
                 if self.no_except:
                     logger.warn(
@@ -175,7 +191,7 @@ class Shapes3dDataset(data.Dataset):
             data = self.transform(data)
 
         return data
-    
+
     def get_vol_info(self, model_path):
         ''' Get crop information
 
@@ -186,22 +202,22 @@ class Shapes3dDataset(data.Dataset):
         unit_size = self.cfg['data']['unit_size']
         field_name = self.cfg['data']['pointcloud_file']
         plane_type = self.cfg['model']['encoder_kwargs']['plane_type']
-        recep_field = 2**(self.cfg['model']['encoder_kwargs']['unet3d_kwargs']['num_levels'] + 2)
+        recep_field = 2 ** (self.cfg['model']['encoder_kwargs']['unet3d_kwargs']['num_levels'] + 2)
 
         if self.cfg['data']['multi_files'] is None:
             file_path = os.path.join(model_path, field_name)
         else:
             num = np.random.randint(self.cfg['data']['multi_files'])
             file_path = os.path.join(model_path, field_name, '%s_%02d.npz' % (field_name, num))
-        
+
         points_dict = np.load(file_path)
         p = points_dict['points']
         if self.split == 'train':
             # randomly sample a point as the center of input/query volume
-            p_c = [np.random.uniform(p[:,i].min(), p[:,i].max()) for i in range(3)]
+            p_c = [np.random.uniform(p[:, i].min(), p[:, i].max()) for i in range(3)]
             # p_c = [np.random.uniform(-0.55, 0.55) for i in range(3)]
             p_c = np.array(p_c).astype(np.float32)
-            
+
             reso = query_vol_size + recep_field - 1
             # make sure the defined reso can be properly processed by UNet
             reso = update_reso(reso, self.depth)
@@ -209,8 +225,8 @@ class Shapes3dDataset(data.Dataset):
             query_vol_metric = query_vol_size * unit_size
 
             # bound for the volumes
-            lb_input_vol, ub_input_vol = p_c - input_vol_metric/2, p_c + input_vol_metric/2
-            lb_query_vol, ub_query_vol = p_c - query_vol_metric/2, p_c + query_vol_metric/2
+            lb_input_vol, ub_input_vol = p_c - input_vol_metric / 2, p_c + input_vol_metric / 2
+            lb_query_vol, ub_query_vol = p_c - query_vol_metric / 2, p_c + query_vol_metric / 2
 
             input_vol = [lb_input_vol, ub_input_vol]
             query_vol = [lb_query_vol, ub_query_vol]
@@ -220,11 +236,11 @@ class Shapes3dDataset(data.Dataset):
             query_vol = self.total_query_vol
 
         vol_info = {'plane_type': plane_type,
-                    'reso'      : reso,
-                    'input_vol' : input_vol,
-                    'query_vol' : query_vol}
+                    'reso': reso,
+                    'input_vol': input_vol,
+                    'query_vol': query_vol}
         return vol_info
-    
+
     def get_model_dict(self, idx):
         return self.models[idx]
 
@@ -260,14 +276,16 @@ def collate_remove_none(batch):
 def worker_init_fn(worker_id):
     ''' Worker init function to ensure true randomness.
     '''
+
     def set_num_threads(nt):
-        try: 
-            import mkl; mkl.set_num_threads(nt)
-        except: 
+        try:
+            import mkl;
+            mkl.set_num_threads(nt)
+        except:
             pass
             torch.set_num_threads(1)
-            os.environ['IPC_ENABLE']='1'
-            for o in ['OPENBLAS_NUM_THREADS','NUMEXPR_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']:
+            os.environ['IPC_ENABLE'] = '1'
+            for o in ['OPENBLAS_NUM_THREADS', 'NUMEXPR_NUM_THREADS', 'OMP_NUM_THREADS', 'MKL_NUM_THREADS']:
                 os.environ[o] = str(nt)
 
     random_data = os.urandom(4)

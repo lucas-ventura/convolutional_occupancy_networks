@@ -277,18 +277,21 @@ class PointCloudField(Field):
         transform (list): list of transformations applied to data points
         multi_files (callable): number of files
     '''
-    def __init__(self, file_name, transform=None, multi_files=None):
+    def __init__(self, file_name, transform=None, multi_files=None, sr_pointcloud_transform=None):
         self.file_name = file_name
         self.transform = transform
         self.multi_files = multi_files
+        self.sr_pointcloud_transform = sr_pointcloud_transform
 
-    def load(self, model_path, idx, category):
+    def load(self, model_path, idx, category, scale=None, rotation=None):
         ''' Loads the data point.
 
         Args:
             model_path (str): path to model
             idx (int): ID of data point
             category (int): index of category
+            scale (float): How to scale object
+            rotation (list of 3 floats): rotation of object
         '''
         if self.multi_files is None:
             file_path = os.path.join(model_path, self.file_name)
@@ -305,6 +308,9 @@ class PointCloudField(Field):
             None: points,
             'normals': normals,
         }
+
+        if scale is not None:
+            data = self.sr_pointcloud_transform(data, scale, rotation)
 
         if self.transform is not None:
             data = self.transform(data)

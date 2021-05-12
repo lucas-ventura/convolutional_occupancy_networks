@@ -1,5 +1,6 @@
 import numpy as np
 import open3d as o3d
+import torch
 
 # Transforms
 class PointcloudNoise(object):
@@ -120,10 +121,10 @@ class ScaleAndRotatePoints(object):
         rotatation [float, float, float]: angle to rotate the data (in degrees).
     '''
 
-    def __init__(self, scale, rotation, threshold=0.02):
-        self.scale = scale
-        self.rotation = rotation * np.pi / 180
+    def __init__(self, threshold=0.02):
         self.threshold = threshold
+        self.rotation = (0, 0, 0)
+        self.scale = 1.
 
     def __call__(self, data):
         ''' Calls the transformation.
@@ -131,6 +132,11 @@ class ScaleAndRotatePoints(object):
         Args:
             data (dictionary): data dictionary
         '''
+        r1 = 0.8
+        r2 = 1.
+        self.scale = (r1 - r2) * torch.rand(1) + r2
+        self.rotation = torch.rand(3) * 2 * np.pi
+
         points = data[None]
         occ = data['occ']
         data_out = data.copy()
@@ -176,12 +182,10 @@ class ScaleAndRotatePointcloud(object):
         rotatation [float, float, float]: angle to rotate the data (in degrees).
     '''
 
-    def __init__(self, scale, rotation, threshold=0.02):
-        self.scale = scale
-        self.rotation = rotation * np.pi / 180
+    def __init__(self, threshold=0.02):
         self.threshold = threshold
 
-    def __call__(self, data):
+    def __call__(self, data, scale, rotation):
         ''' Calls the transformation.
 
         Args:
@@ -195,15 +199,13 @@ class ScaleAndRotatePointcloud(object):
         pcd_obj.points = o3d.utility.Vector3dVector(points)
 
         # Rotate object
-        R = pcd_obj.get_rotation_matrix_from_xyz(self.rotation)
+        R = pcd_obj.get_rotation_matrix_from_xyz(rotation)
         pcd_obj.rotate(R)
         # Scale object
-        pcd_obj.scale(self.scale)
+        pcd_obj.scale(scale)
 
         data_out.update({
             None: np.asarray(pcd_obj.points, dtype='float32'),
-            'scale': self.scale.item(),
-            'rotation': self.rotation.tolist()
         })
 
         return data_out

@@ -167,7 +167,13 @@ def get_data_fields(mode, cfg):
         mode (str): the mode which is used
         cfg (dict): imported yaml config
     '''
-    points_transform = data.SubsamplePoints(cfg['data']['points_subsample'])
+    if cfg['data']['scale_rotate'] is not None:
+        points_transform = transforms.Compose([
+            data.ScaleAndRotatePoints(),
+            data.SubsamplePoints(cfg['data']['points_subsample'])
+        ])
+    else:
+        points_transform = data.SubsamplePoints(cfg['data']['points_subsample'])
 
     input_type = cfg['data']['input_type']
     fields = {}
