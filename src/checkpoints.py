@@ -65,7 +65,8 @@ class CheckpointIO(object):
             scalars = self.parse_state_dict(state_dict)
             return scalars
         else:
-            raise FileExistsError
+            import errno
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filename)
 
     def load_url(self, url):
         '''Load a module dictionary from url.
