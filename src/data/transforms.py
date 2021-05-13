@@ -155,15 +155,16 @@ class ScaleAndRotatePoints(object):
 
         # Rotate object
         R = pcd_obj.get_rotation_matrix_from_xyz(self.rotation)
-        pcd_obj.rotate(R)
+        pcd_obj.rotate(R, center=(0, 0, 0))
         # Scale object
-        pcd_obj.scale(self.scale)
+        pcd_obj.scale(self.scale, center=(0, 0, 0))
 
         # Compute new occupancy vector with rotated and scaled object
-        occ_out = np.where(np.asarray(pcd_rnd.compute_point_cloud_distance(pcd_obj)) < self.threshold, 1., 0.).astype(dtype='float32')
+        occ_out = np.where(np.asarray(pcd_rnd.compute_point_cloud_distance(pcd_obj)) < self.threshold, 1., 0.).astype(
+            dtype='float32')
 
         data_out.update({
-            None: points,
+            # None: points,
             'occ': occ_out,
             'scale': self.scale.item(),
             'rotation': self.rotation.tolist()
@@ -200,9 +201,9 @@ class ScaleAndRotatePointcloud(object):
 
         # Rotate object
         R = pcd_obj.get_rotation_matrix_from_xyz(rotation)
-        pcd_obj.rotate(R)
+        pcd_obj.rotate(R, center=(0, 0, 0))
         # Scale object
-        pcd_obj.scale(scale)
+        pcd_obj.scale(scale, center=(0, 0, 0))
 
         data_out.update({
             None: np.asarray(pcd_obj.points, dtype='float32'),
