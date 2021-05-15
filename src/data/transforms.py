@@ -84,13 +84,21 @@ class SubsamplePoints(object):
                 'occ':  occ[idx],
             })
         else:
+            # We will have 70% points or all of them if there are less than Nt_in
             Nt_out, Nt_in = self.N
+            Nt = Nt_out + Nt_in # Output size
+
             occ_binary = (occ >= 0.5)
             points0 = points[~occ_binary]
             points1 = points[occ_binary]
 
-            idx0 = np.random.randint(points0.shape[0], size=Nt_out)
-            idx1 = np.random.randint(points1.shape[0], size=Nt_in)
+            # If there are not enough ones, we have to fill with zeros
+            Nt_in = min(Nt_in, points1.shape[0])
+            Nt_out = Nt - Nt_in
+
+            idx0 = torch.randint(points0.shape[0], (Nt_out,))
+            unif = torch.ones(points1.shape[0])
+            idx1 = unif.multinomial(Nt_in, replacement=False)
 
             points0 = points0[idx0, :]
             points1 = points1[idx1, :]
