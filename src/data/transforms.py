@@ -49,7 +49,8 @@ class SubsamplePointcloud(object):
         points = data[None]
         normals = data['normals']
 
-        indices = np.random.randint(points.shape[0], size=self.N)
+        self.N = min(self.N, points.shape[0])
+        indices = torch.ones(points.shape[0]).multinomial(self.N, replacement=False)
         data_out[None] = points[indices, :]
         data_out['normals'] = normals[indices, :]
 
