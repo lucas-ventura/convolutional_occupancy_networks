@@ -162,7 +162,7 @@ class Shapes3dDataset(data.Dataset):
                     elif field_name == 'inputs':
                         assert scale is not None
                         assert rotation is not None
-                        field_data = field.load(model_path, idx, info, scale=scale, rotation=rotation)
+                        field_data = field.load(model_path, idx, info, scale=scale, rotation=rotation, obj_name=model)
                     else:
                         field_data = field.load(model_path, idx, info)
                 else:

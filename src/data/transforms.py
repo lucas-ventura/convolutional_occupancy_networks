@@ -1,6 +1,7 @@
 import numpy as np
 import open3d as o3d
 import torch
+import json
 
 # Transforms
 class PointcloudNoise(object):
@@ -28,6 +29,7 @@ class PointcloudNoise(object):
         data_out[None] = points + noise
         return data_out
 
+
 class SubsamplePointcloud(object):
     ''' Point cloud subsampling transformation class.
 
@@ -36,8 +38,14 @@ class SubsamplePointcloud(object):
     Args:
         N (int): number of points to be subsampled
     '''
+
     def __init__(self, N):
-        self.N = N
+        if isinstance(N, int):
+            self.N = N
+        else:
+            with open(N) as json_file:
+                grasps_dict = json.load(json_file)
+            self.N = grasps_dict
 
     def __call__(self, data):
         ''' Calls the transformation.
@@ -49,8 +57,26 @@ class SubsamplePointcloud(object):
         points = data[None]
         normals = data['normals']
 
-        self.N = min(self.N, points.shape[0])
-        indices = torch.ones(points.shape[0]).multinomial(self.N, replacement=False)
+        if isinstance(self.N, int):
+            indices = np.random.randint(points.shape[0], size=self.N)
+
+        else:
+            obj_name = data['obj_name']
+
+            obj_grasps_dict = self.N[obj_name]
+
+            total_grasps = len(obj_grasps_dict)
+            n_grasps = torch.randint(5, total_grasps, (1,)).item()
+            grasps = torch.ones(total_grasps).multinomial(n_grasps, replacement=False)
+
+            indices = []
+            for grasp in grasps:
+                start, end = obj_grasps_dict[str(grasp.item())]
+                indices += list(range(start, end))
+
+            indices = np.random.randint(len(indices), size=3_000)  # To make all points the same size
+
+        del data_out['obj_name']
         data_out[None] = points[indices, :]
         data_out['normals'] = normals[indices, :]
 

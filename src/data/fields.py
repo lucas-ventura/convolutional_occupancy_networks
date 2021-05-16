@@ -283,7 +283,7 @@ class PointCloudField(Field):
         self.multi_files = multi_files
         self.sr_pointcloud_transform = sr_pointcloud_transform
 
-    def load(self, model_path, idx, category, scale=None, rotation=None):
+    def load(self, model_path, idx, category, scale=None, rotation=None, obj_name=None):
         ''' Loads the data point.
 
         Args:
@@ -307,6 +307,7 @@ class PointCloudField(Field):
         data = {
             None: points,
             'normals': normals,
+            'obj_name': obj_name
         }
 
         if scale is not None:
