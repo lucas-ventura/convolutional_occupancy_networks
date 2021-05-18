@@ -53,7 +53,10 @@ shutil.copyfile(args.config, os.path.join(out_dir, 'config.yaml'))
 
 # Dataset
 train_dataset = config.get_dataset('train', cfg)
-val_dataset = config.get_dataset('val', cfg, return_idx=True)
+cfg_val = cfg.copy()
+cfg_val['data']['scale_rotate'] = None
+cfg_val['data']['pointcloud_n'] = 3_000
+val_dataset = config.get_dataset('val', cfg_val, return_idx=True)
 
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, num_workers=cfg['training']['n_workers'], shuffle=True,
