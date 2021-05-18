@@ -152,7 +152,9 @@ class Shapes3dDataset(data.Dataset):
         rotation = None
         for field_name, field in sorted(self.fields.items(), reverse=True):
             try:
-                if self.cfg['data']['scale_rotate'] is not None:
+                if field_name is "idx":
+                    pass
+                elif self.cfg['data']['scale_rotate'] is not None:
                     if field_name == 'points':
                         field_data = field.load(model_path, idx, info)
                         scale = field_data['scale']
@@ -167,6 +169,7 @@ class Shapes3dDataset(data.Dataset):
                         field_data = field.load(model_path, idx, info)
                 else:
                     field_data = field.load(model_path, idx, info)
+                    field_data.pop("obj_name", None)
 
             except Exception:
                 if self.no_except:
@@ -189,6 +192,8 @@ class Shapes3dDataset(data.Dataset):
 
         if self.transform is not None:
             data = self.transform(data)
+
+        data['idx'] = idx
 
         return data
 
