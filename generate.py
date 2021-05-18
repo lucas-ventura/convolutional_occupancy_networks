@@ -24,6 +24,9 @@ cfg = config.load_config(args.config, 'configs/default.yaml')
 is_cuda = (torch.cuda.is_available() and not args.no_cuda)
 device = torch.device("cuda" if is_cuda else "cpu")
 
+cfg['data']['scale_rotate'] = None
+cfg['data']['pointcloud_n'] = 3_000
+
 out_dir = cfg['training']['out_dir']
 generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'])
 out_time_file = os.path.join(generation_dir, 'time_generation_full.pkl')
