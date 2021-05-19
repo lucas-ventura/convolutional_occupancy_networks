@@ -10,6 +10,7 @@ from src import config, data
 from src.checkpoints import CheckpointIO
 from collections import defaultdict
 import shutil
+import copy
 
 
 # Arguments
@@ -53,7 +54,7 @@ shutil.copyfile(args.config, os.path.join(out_dir, 'config.yaml'))
 
 # Dataset
 train_dataset = config.get_dataset('train', cfg)
-cfg_val = cfg.copy()
+cfg_val = copy.deepcopy(cfg)
 cfg_val['data']['scale_rotate'] = None
 cfg_val['data']['pointcloud_n'] = 3_000
 val_dataset = config.get_dataset('val', cfg_val, return_idx=True)
