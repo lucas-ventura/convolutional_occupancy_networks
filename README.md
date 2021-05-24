@@ -157,6 +157,11 @@ python train.py CONFIG.yaml
 ```
 For available training options, please take a look at `configs/default.yaml`.
 
+#### Modifications
+To scale and rotate the objects during training, you will need to change the ``scale_rotate`` parameter in the configuration file for a number between 0 and 1 (which represents the minimum size we will multiply the object mesh).
+
+To use different grasps during training, you will need to change the ``pointcloud_n`` parameter in the configuration file for the path to the json file with the correspondences grasp-points.
+
 ## Further Information
 Please also check out the following concurrent works that either tackle similar problems or share similar ideas:
 - [[CVPR 2020] Jiang et al. - Local Implicit Grid Representations for 3D Scenes](https://arxiv.org/abs/2003.08981)
