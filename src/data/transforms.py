@@ -2,6 +2,8 @@ import numpy as np
 import open3d as o3d
 import torch
 import json
+from scipy import spatial
+
 
 # Transforms
 class PointcloudNoise(object):
@@ -62,19 +64,41 @@ class SubsamplePointcloud(object):
 
         else:
             obj_name = data['obj_name']
-
             obj_grasps_dict = self.N[obj_name]
-
             total_grasps = len(obj_grasps_dict)
-            n_grasps = torch.randint(5, total_grasps, (1,)).item()
-            grasps = torch.ones(total_grasps).multinomial(n_grasps, replacement=False)
 
-            indices = []
-            for grasp in grasps:
-                start, end = obj_grasps_dict[str(grasp.item())]
-                indices += list(range(start, end))
+            if len(obj_grasps_dict['0']) == 2:
+                n_grasps = torch.randint(5, total_grasps, (1,)).item()
+                grasps = torch.ones(total_grasps).multinomial(n_grasps, replacement=False)
 
-            indices = np.random.randint(len(indices), size=3_000)  # To make all points the same size
+                indices = []
+                for grasp in grasps:
+                    start, end = obj_grasps_dict[str(grasp.item())]
+                    indices += list(range(start, end))
+
+                indices = np.random.randint(len(indices), size=3_000)  # To make all points the same size
+
+            elif len(obj_grasps_dict['0']) == 3:
+                grasp_idx = torch.randint(0, total_grasps, (1,)).item()
+
+                n_grasps = torch.randint(5, min(20, total_grasps), (1,)).item()
+
+                # grasp_positions contains the location of all the grasps
+                grasp_positions = np.zeros((total_grasps, 3))
+                for grasp in range(total_grasps):
+                    _, _, grasp_position = obj_grasps_dict[str(grasp)]
+                    grasp_positions[grasp, :] = np.array(grasp_position)
+
+                # Returns a list of n_grasps indices of the nearest grasps to grasp_num
+                grasps = spatial.KDTree(grasp_positions).query(grasp_positions[grasp_idx], k=n_grasps)[1]
+
+                indices = []
+                for grasp in grasps:
+                    start, end, _ = obj_grasps_dict[str(grasp)]
+                    indices += list(range(start, end))
+
+                # So all have the same number of indices
+                indices = np.tile(indices, int(2_000 / len(indices)) + 1)[:2_000]
 
         del data_out['obj_name']
         data_out[None] = points[indices, :]
